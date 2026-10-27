@@ -6,6 +6,13 @@ const asyncHandler = require('../utils/asyncHandler');
 // on role. Centralizing this in one place means every read endpoint enforces
 // "customers only see their own shipments" the same way - there's no route
 // where someone could forget to scope the query.
+
+const ALLOWED_TRANSAISTIONS = {
+  Pending : ['In Transit'],
+  'In Transit': ['Customs', 'Delivered'],
+  Customs: ['Delivered'],
+  'Delivered' : []
+};
 const scopeToOwner = (req, filter = {}) => {
   if (req.user.role !== 'admin') {
     filter.owner = req.user._id;
@@ -71,6 +78,8 @@ const getShipments = asyncHandler(async (req, res) => {
   res.status(200).json(shipments);
 });
 
+
+
 // @route   GET /api/shipments/summary
 // @access  Private (admin: across all shipments. customer: only their own)
 // Powers the dashboard's summary cards (total / in-transit / delayed).
@@ -105,6 +114,17 @@ const getShipmentById = asyncHandler(async (req, res) => {
   // tracking ID even exists in the system.
   if (!shipment) {
     return res.status(404).json({ message: 'Shipment not found' });
+  }
+
+  const allowedNextStatuses = ALLOWED_TRANSITION[shipement.status] || [];
+
+  if (!allowedNextStatuses.includes(status)){
+    return res.status(400).json({
+      message: 'Invalid status transition: $(shipement.status) -> $(status).',
+      currentStatus: shipment.status,
+      requestedStatus: status,
+      allowedStatuses: allowedNextStatuses,
+    });
   }
 
   res.status(200).json(shipment);
