@@ -22,7 +22,7 @@ const explainRejection = (from,to)=>{
  const order= Object.keys(ALLOWED_NEXT);
  if(order.indexOf(to)<order.indexOf(from)){
   return (
-    'Cannot change status backward from' + from+ 'as it is against the ' + LIFECYCLE_ORDER + '.'
+    'Cannot change status backward from' + from+ 'as it is against the order  ' + LIFECYCLE_ORDER + ' .'
   );
  }
   return(
