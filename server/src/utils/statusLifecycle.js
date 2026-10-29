@@ -16,7 +16,7 @@ const explainRejection = (from,to)=>{
 
   if(from==='Delivered'){
     return (
-      'Cannot change status from Delivered to' + to + '. The shipment has already been delivered'
+      'Cannot change status from Delivered to ' + to + '. The shipment has already been delivered'
 );
 }
  const order= Object.keys(ALLOWED_NEXT);
