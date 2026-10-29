@@ -18,10 +18,6 @@ const registerUser = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'A user with this email already exists' });
   }
 
-  // Note: we intentionally do NOT let the client set role to 'admin' freely
-  // in a real production app - that would let anyone self-promote. Here we
-  // allow it only because this is a demo project without an invite/admin-
-  // approval flow. In production this line would just be `role: 'customer'`.
   const user = await User.create({
     name,
     email,
@@ -50,13 +46,10 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const { email, password } = req.body;
 
-  // .select('+password') is required because the schema marks password
-  // as select: false by default (see User.js).
+
   const user = await User.findOne({ email }).select('+password');
 
-  // Deliberately using the SAME error message for "no such user" and
-  // "wrong password" - this prevents an attacker from using the login
-  // endpoint to enumerate which emails are registered.
+
   if (!user || !(await user.matchPassword(password))) {
     return res.status(401).json({ message: 'Invalid email or password' });
   }
