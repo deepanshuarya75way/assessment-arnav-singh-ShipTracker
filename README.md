@@ -18,7 +18,7 @@ Each half is a separate, independently runnable Node project with its own `packa
 - [x] Shipment + StatusUpdate schemas
 - [x] Shipment CRUD API (role-based access, status timeline, dashboard summary)
 - [x] React frontend — auth, dashboard (summary cards + search/filter), create shipment, shipment detail with visual timeline and admin controls
-- [ ] Deployment
+- [x] Deployment
 
 ## Running the backend locally
 
