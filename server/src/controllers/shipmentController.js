@@ -199,7 +199,7 @@ const addStatusUpdate = asyncHandler(async (req, res) => {
     updatedBy: req.user._id,
   });
   
-  shipment.status= latestStatus(shipment.statusHistory, status)
+  shipment.status= latestStatus(shipment.statusHistory, status);
   const updated = await shipment.save();
   res.status(201).json(updated);
 });

@@ -1,36 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { createShipment } from '../api/shipmentApi';
 import { useAuth } from '../context/AuthContext';
 import { fetchCustomers } from '../api/authApi';
-
 import '../styles/app-theme.css';
-import { useEffect } from 'react';
-
-const { user } = useAuth();
-const isAdmin= user?.role==='admin';
-const [customers, setCustomers]=useState([]);
-
-useEffect(()=>{
-if (isAdmin){
-  fetchCustomers()
-  .then(setCustomers)
-  .catch(()=> setError('Failed to load customers.'));
-}
-},[isAdmin]
-);
 
 const CreateShipment = () => {
   const navigate = useNavigate();
-
+  const { user } = useAuth();
+  const isAdmin= user?.role==='admin';
+  const [customers, setCustomers]=useState([]);
   const [form, setForm] = useState({
     origin: '',
     destination: '',
     carrier: '',
     estimatedDelivery: '',
+    ownerId:'',
   });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(()=>{
+    if(isAdmin){
+      fetchCustomers()
+      .then(setCustomers)
+      .catch(()=> setError('Failed to load'));
+    }
+  }, [isAdmin]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });

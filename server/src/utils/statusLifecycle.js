@@ -7,7 +7,7 @@ const ALLOWED_NEXT = {
 
 const LIFECYCLE_ORDER= 'Pending -> In Transit -> Customs -> Delivered'
 
-const isValidTransaction = (from,to) => 
+const isValidTransition = (from,to) => 
   from ===to || (ALLOWED_NEXT[from] ||
     []).includes(to);
   
@@ -16,41 +16,41 @@ const explainRejection = (from,to)=>{
 
   if(from==='Delivered'){
     return (
-      'Cannot change status from Delivered. The shipment has already been delivered'
+      'Cannot change status from Delivered to' + to + '. The shipment has already been delivered'
 );
 }
  const order= Object.keys(ALLOWED_NEXT);
  if(order.indexOf(to)<order.indexOf(from)){
   return (
-    'Cannot change status backward as it is against the lifecycle order'
+    'Cannot change status backward from' + from+ 'as it is against the ' + LIFECYCLE_ORDER + '.'
   );
  }
   return(
-    'Cannot change status directly'
+    'Cannot change status from' + from + 'directly to' + to + '.Allowed next:' +ALLWOED_NEXT[from].join(' or ') + '.'
   );
 };
 
-const sortChronologically = (entries) => entries.
-      map((entery, index) => ({entry, index})).sort((a,b) =>{
-  const diff=new
-  Date(a.entry.timestamp)-new
-  Date(b.entry.timestamp);
-      return diff != 0 ? diff: a.index-b.index;
+const sortChronologically = (entries) => 
+  entries
+      .map((entry, index) => ({entry, index}))
+      .sort((a,b) =>{
+        const diff=new Date(a.entry.timestamp)-new Date(b.entry.timestamp);
+      return diff !== 0 ? diff: a.index-b.index;
 })
   .map(({entry})=>entry);
 
 const checkNeighbours = (sorted, target) => {
-  const i = sorted.indexOf(targe);
+  const i = sorted.indexOf(target);
   const prev = sorted[i-1];
   const next = sorted[i+1];
 
   if (prev && !isValidTransition(prev.status, target.status)){
     return explainRejection(prev.status, target.status);
   }
-  if (next && !!isValidTransition(target.status, next.status)){
+  if (next && !isValidTransition(target.status, next.status)){
     const allowed= ALLOWED_NEXT[target.status];
     return (
-      'cannot change this record at this point'
+      'cannot record' + target.status + ' here: the next entry is' + next.status + 'Allowed after' +':'+ (allowed.join(' or ')|| 'none') + '.'
     );
   }
   return null;
@@ -102,7 +102,7 @@ const latestStatus = (history, fallback) => {
 
 module.exports={
   ALLOWED_NEXT,
-  isValidTransaction,
+  isValidTransition,
   explainRejection,
   sortChronologically,
   validateNewEntry,

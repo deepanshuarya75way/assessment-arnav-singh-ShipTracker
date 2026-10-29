@@ -116,10 +116,7 @@ const TimelineEntry = ({ entry, isLast, isAdmin, onUpdate, onDelete }) => {
 
             {isAdmin && (
               <div className="tl-actions">
-                <button onClick={() => {setEditing(false);
-                  setError('');
-
-                }} className="btn-secondary">
+                <button onClick={() => {setEditing(true)}} className="btn-secondary">
                   Edit
                 </button>
                 <button onClick={handleDelete} className="btn-ghost" style={{ color: 'var(--red)' }}>
