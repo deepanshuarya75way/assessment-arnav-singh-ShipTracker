@@ -1,7 +1,24 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { createShipment } from '../api/shipmentApi';
+import { useAuth } from '../context/AuthContext';
+import { fetchCustomers } from '../api/authApi';
+
 import '../styles/app-theme.css';
+import { useEffect } from 'react';
+
+const { user } = useAuth();
+const isAdmin= user?.role==='admin';
+const [customers, setCustomers]=useState([]);
+
+useEffect(()=>{
+if (isAdmin){
+  fetchCustomers()
+  .then(setCustomers)
+  .catch(()=> setError('Failed to load customers.'));
+}
+},[isAdmin]
+);
 
 const CreateShipment = () => {
   const navigate = useNavigate();
@@ -54,6 +71,19 @@ const CreateShipment = () => {
           {error && <div className="alert-error">{error}</div>}
 
           <form onSubmit={handleSubmit}>
+            {isAdmin && (
+              <div className='form-field'>
+                <label>Customer</label>
+                <select name="ownerId" required valude={form.ownerId} onChange={handleChange}>
+                  <option value="">select a customer</option>
+                  {customers.map((c) => (
+                  <option key={c._id} value={c._id}>
+                    {c.name} ({c.email})
+                  </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="form-field">
               <label>Origin</label>
               <input

@@ -24,6 +24,7 @@ const createShipmentValidation = [
     .optional({ values: 'falsy' })
     .isISO8601()
     .withMessage('estimatedDelivery must be a valid date'),
+  body('ownerId').optional({ values: 'falsy'}).isMongoId().withMessage('owner id must be valid'),
 ];
 
 // Same field rules as create, but every field is optional since this is

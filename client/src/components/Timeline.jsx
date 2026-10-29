@@ -32,20 +32,32 @@ const TimelineEntry = ({ entry, isLast, isAdmin, onUpdate, onDelete }) => {
     note: entry.note || '',
   });
   const [saving, setSaving] = useState(false);
+  const [error, setError]= useState('');
+
 
   const handleSave = async () => {
     setSaving(true);
+    setError('');
     try {
       await onUpdate(entry._id, form);
       setEditing(false);
-    } finally {
+    } catch(err){
+      setError(err.respomse?.data?.message || 'Failed to update status entry.');
+    }
+    finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async () => {
     if (!window.confirm('Delete this status update? This cannot be undone.')) return;
-    await onDelete(entry._id);
+    setError('');
+    try {
+      await onDelete(entry._id);
+    }
+    catch(err){
+      setError(err.reponse?.data?.message || 'Failed to delete status entry.');
+    }
   };
 
   return (
@@ -71,6 +83,9 @@ const TimelineEntry = ({ entry, isLast, isAdmin, onUpdate, onDelete }) => {
                 ))}
               </select>
             </div>
+            {error && (
+              <p style={{ color:'var(--red)', fontSize: '12.5px', margin: '8px 0'}}>{error}</p>
+            )}
             <input
               type="text"
               value={form.note}
@@ -94,11 +109,17 @@ const TimelineEntry = ({ entry, isLast, isAdmin, onUpdate, onDelete }) => {
                 <span className="tl-time">{formatDateTime(entry.timestamp)}</span>
               </div>
               {entry.note && <p className="tl-note">{entry.note}</p>}
+              {error && (
+              <p style={{ color:'var(--red)', fontSize: '12.5px', margin: '8px 0'}}>{error}</p>
+            )}
             </div>
 
             {isAdmin && (
               <div className="tl-actions">
-                <button onClick={() => setEditing(true)} className="btn-ghost">
+                <button onClick={() => {setEditing(false);
+                  setError('');
+
+                }} className="btn-secondary">
                   Edit
                 </button>
                 <button onClick={handleDelete} className="btn-ghost" style={{ color: 'var(--red)' }}>

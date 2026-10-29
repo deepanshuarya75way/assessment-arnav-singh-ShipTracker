@@ -18,3 +18,8 @@ export const fetchCurrentUser = async () => {
   const { data } = await api.get('/auth/me');
   return data;
 };
+
+export const fetchCustomers = async()=>{
+  const {data}=await api.get('/auth/customers');
+  return data;
+}

@@ -11,7 +11,7 @@ const registerUser = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: errors.array()[0].msg, errors: errors.array() });
   }
 
-  const { name, email, password, role } = req.body;
+  const { name, email, password } = req.body;
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
@@ -26,7 +26,7 @@ const registerUser = asyncHandler(async (req, res) => {
     name,
     email,
     password,
-    role: role === 'admin' ? 'admin' : 'customer',
+    role: 'customer',
   });
 
   const token = generateToken(user._id, user.role);
@@ -84,4 +84,10 @@ const getMe = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { registerUser, loginUser, getMe };
+const listCustomers = asyncHandler(async(req,res)=>{
+  const customers = await User.find({role:'customer'})
+    .select('name email')
+    .sort({name: 1})
+  res.status(200).json(customers);
+});
+module.exports = { registerUser, loginUser, getMe, listCustomers };

@@ -2,10 +2,13 @@ const { validationResult } = require('express-validator');
 const Shipment = require('../models/Shipment');
 const asyncHandler = require('../utils/asyncHandler');
 
-// Small helper: builds the base Mongo filter for list/detail queries based
-// on role. Centralizing this in one place means every read endpoint enforces
-// "customers only see their own shipments" the same way - there's no route
-// where someone could forget to scope the query.
+const {
+  validateNewEntry,
+  validateEditedEntry,
+  validateDeletion,
+  latestStatus,
+} = require('../utils/statusLifecycle');
+
 const scopeToOwner = (req, filter = {}) => {
   if (req.user.role !== 'admin') {
     filter.owner = req.user._id;
@@ -17,12 +20,24 @@ const scopeToOwner = (req, filter = {}) => {
 // @access  Private (any authenticated user)
 const createShipment = asyncHandler(async (req, res) => {
   const errors = validationResult(req);
+  const User= require('../models/User');
   if (!errors.isEmpty()) {
     return res.status(400).json({ message: errors.array()[0].msg, errors: errors.array() });
   }
 
-  const { origin, destination, carrier, estimatedDelivery, trackingId } = req.body;
-
+  const { origin, destination, carrier, estimatedDelivery, ownerId } = req.body;
+  let owner = req.user._id;
+  if (ownerId){
+    if (req.user.role !== 'admin'){
+      return res.status(403).json({message:'Only admins can create shipments'});
+    }
+    const customer = await User.findOne({_id: ownerId, role:'customer'});
+    if (!customer){
+      return res.status(404).json({message: 'Cutomer not found'});
+    }
+    owner = customer._id;
+  }
+  
   const shipment = await Shipment.create({
     trackingId,
     owner: req.user._id,
@@ -168,14 +183,23 @@ const addStatusUpdate = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: 'Shipment not found' });
   }
 
+  const entryTimestamp=timestamp?new Date(timestamp): new Date();
+  
+  const rejection = validateNewEntry(shipment.statusHistory, {
+    status,
+    timestamp: entryTimestamp,
+  });
+  if (rejection){
+    return res.status(400).json({ message: rejection});
+  }
   shipment.statusHistory.push({
     status,
     note,
-    timestamp: timestamp || Date.now(),
+    timestamp: entryTimestamp,
     updatedBy: req.user._id,
   });
-  shipment.status = status;
-
+  
+  shipment.status= latestStatus(shipment.statusHistory, status)
   const updated = await shipment.save();
   res.status(201).json(updated);
 });
@@ -201,14 +225,20 @@ const updateStatusEntry = asyncHandler(async (req, res) => {
   }
 
   const { status, note, timestamp } = req.body;
+
+  const rejection = validateEditedEntry(shipment.statusHistory, entry._id,{
+    status,
+    timestamp: timestamp !== undefined? new Date(timestamp): undefined,
+  });
+  if(rejection){
+    return res.status(400).json({ message: rejection});
+  }
+
   if (status !== undefined) entry.status = status;
   if (note !== undefined) entry.note = note;
   if (timestamp !== undefined) entry.timestamp = timestamp;
 
-  // Keep shipment.status in sync: recompute it as whichever entry is now
-  // chronologically most recent, in case an edit changed the ordering.
-  const latest = [...shipment.statusHistory].sort((a, b) => b.timestamp - a.timestamp)[0];
-  if (latest) shipment.status = latest.status;
+  shipment.status = latestStatus(shipment.statusHistory, shipment.status);
 
   const updated = await shipment.save();
   res.status(200).json(updated);
@@ -227,13 +257,13 @@ const deleteStatusEntry = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: 'Status history entry not found' });
   }
 
-  entry.deleteOne();
+  const rejection = validateDeletion(shipment.statusHistory, entry._id);
+  if (rejection){
+    return res.status(400).json({message: rejection});
+  }
 
-  // Re-sync shipment.status to whatever is now the latest remaining entry.
-  // If the deleted entry was the only one, statusHistory is empty and we
-  // leave shipment.status as-is rather than guessing.
-  const latest = [...shipment.statusHistory].sort((a, b) => b.timestamp - a.timestamp)[0];
-  if (latest) shipment.status = latest.status;
+ shipment.status = latestStatus(shipment.statusHistory, shipment.status);
+  
 
   const updated = await shipment.save();
   res.status(200).json(updated);
